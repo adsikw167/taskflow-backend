@@ -38,6 +38,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/projects/:projectId/tasks', require('./routes/tasks'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/invitations', require('./routes/invitations'));
 
 // Health check
 app.get('/api/health', (req, res) => {

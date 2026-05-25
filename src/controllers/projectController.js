@@ -1,6 +1,9 @@
 const Project = require('../models/Project');
 const User = require('../models/User');
 const Task = require('../models/Task');
+const Invitation = require('../models/Invitation');
+const crypto = require('crypto');
+const { sendInvitationEmail } = require('../services/emailService');
 
 // Load project middleware
 exports.loadProject = async (req, res, next) => {
@@ -99,19 +102,68 @@ exports.addMember = async (req, res) => {
   try {
     const { email, role } = req.body;
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    // Check if already a member
     const already = req.project.members.find(
-      (m) => m.user._id.toString() === user._id.toString()
+      (m) => m.user && m.user._id.toString() === (user?._id.toString() || '')
     );
     if (already)
       return res.status(400).json({ success: false, message: 'Already a member' });
 
-    req.project.members.push({ user: user._id, role: role || 'member' });
-    await req.project.save();
-    await req.project.populate('members.user', 'name email avatar');
+    // If user exists, add them directly
+    if (user) {
+      req.project.members.push({ user: user._id, role: role || 'member' });
+      await req.project.save();
+      await req.project.populate('members.user', 'name email avatar');
+      return res.status(200).json({ success: true, data: req.project, message: 'Member added successfully' });
+    }
 
-    res.status(200).json({ success: true, data: req.project });
+    // If user doesn't exist, send invitation
+    const existingInvite = await Invitation.findOne({ 
+      email, 
+      project: req.project._id, 
+      status: 'pending' 
+    });
+    
+    if (existingInvite) {
+      return res.status(400).json({ success: false, message: 'Invitation already sent to this email' });
+    }
+
+    // Create invitation token
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    const invitation = await Invitation.create({
+      email,
+      project: req.project._id,
+      role: role || 'member',
+      invitedBy: req.user._id,
+      token,
+    });
+
+    // Send invitation email
+    const inviteLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/invite/${token}`;
+    
+    try {
+      await sendInvitationEmail({
+        to: email,
+        projectName: req.project.name,
+        inviterName: req.user.name,
+        inviteLink,
+      });
+    } catch (emailErr) {
+      console.error('Email send error:', emailErr);
+      // Continue even if email fails (for development)
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Invitation sent to ${email}`,
+      invitation: {
+        email: invitation.email,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
