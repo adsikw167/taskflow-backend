@@ -23,7 +23,7 @@ exports.loadProject = async (req, res, next) => {
 
     // Check membership
     const isMember = project.members.some(
-      (m) => m.user._id.toString() === req.user._id.toString()
+      (m) => m.user && m.user._id.toString() === req.user._id.toString()
     );
     if (!isMember)
       return res.status(403).json({ success: false, message: 'Access denied' });
@@ -176,7 +176,7 @@ exports.removeMember = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot remove project owner' });
 
     req.project.members = req.project.members.filter(
-      (m) => m.user._id.toString() !== memberId
+      (m) => m.user && m.user._id.toString() !== memberId
     );
     await req.project.save();
     res.status(200).json({ success: true, data: req.project });
@@ -190,7 +190,7 @@ exports.updateMemberRole = async (req, res) => {
     const { memberId } = req.params;
     const { role } = req.body;
     const member = req.project.members.find(
-      (m) => m.user._id.toString() === memberId
+      (m) => m.user && m.user._id.toString() === memberId
     );
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
     member.role = role;
