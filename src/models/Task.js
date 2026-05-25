@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+const checklistItemSchema = new mongoose.Schema({
+  text: { type: String, required: true, trim: true },
+  completed: { type: Boolean, default: false },
+  completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  completedAt: Date,
+});
+
 const taskSchema = new mongoose.Schema(
   {
     title: {
@@ -40,6 +47,16 @@ const taskSchema = new mongoose.Schema(
     },
     dueDate: { type: Date },
     tags: [{ type: String, trim: true }],
+    checklist: [checklistItemSchema],
+    parentTask: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Task',
+      default: null,
+    },
+    timeTracking: {
+      estimated: { type: Number, default: 0 }, // in minutes
+      logged: { type: Number, default: 0 }, // in minutes
+    },
   },
   { timestamps: true }
 );
@@ -47,6 +64,13 @@ const taskSchema = new mongoose.Schema(
 // Virtual: is overdue
 taskSchema.virtual('isOverdue').get(function () {
   return this.dueDate && this.status !== 'done' && new Date() > this.dueDate;
+});
+
+// Virtual: checklist progress
+taskSchema.virtual('checklistProgress').get(function () {
+  if (!this.checklist || this.checklist.length === 0) return null;
+  const completed = this.checklist.filter(item => item.completed).length;
+  return { completed, total: this.checklist.length, percentage: Math.round((completed / this.checklist.length) * 100) };
 });
 
 taskSchema.set('toJSON', { virtuals: true });
