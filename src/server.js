@@ -1,10 +1,16 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const { initializeSocket } = require('./config/socket');
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+initializeSocket(server);
 
 // Connect DB
 connectDB();
@@ -39,6 +45,12 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/projects/:projectId/tasks', require('./routes/tasks'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/invitations', require('./routes/invitations'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api', require('./routes/comments'));
+app.use('/api', require('./routes/timeTracking'));
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -60,4 +72,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
