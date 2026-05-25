@@ -15,6 +15,9 @@ initializeSocket(server);
 // Connect DB
 connectDB();
 
+// Trust proxy - required for Railway and other reverse proxies
+app.set('trust proxy', 1);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -22,6 +25,7 @@ const limiter = rateLimit({
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true,
 });
 
 const authLimiter = rateLimit({
@@ -29,6 +33,7 @@ const authLimiter = rateLimit({
   max: 5, // Limit each IP to 5 login attempts per windowMs
   message: { success: false, message: 'Too many login attempts, please try again later.' },
   skipSuccessfulRequests: true,
+  trustProxy: true,
 });
 
 // Middleware
