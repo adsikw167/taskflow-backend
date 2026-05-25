@@ -3,7 +3,7 @@ const Project = require('../models/Project');
 const User = require('../models/User');
 
 // Get invitation details
-exports.getInvitation = async (req, res) => {
+const getInvitation = async (req, res) => {
   try {
     const { token } = req.params;
     
@@ -37,7 +37,7 @@ exports.getInvitation = async (req, res) => {
 };
 
 // Accept invitation (called after signup/login)
-exports.acceptInvitation = async (req, res) => {
+const acceptInvitation = async (req, res) => {
   try {
     const { token } = req.params;
     const userId = req.user._id;
@@ -95,7 +95,7 @@ exports.acceptInvitation = async (req, res) => {
 };
 
 // Get pending invitations for a project
-exports.getProjectInvitations = async (req, res) => {
+const getProjectInvitations = async (req, res) => {
   try {
     const { projectId } = req.params;
     
@@ -112,7 +112,7 @@ exports.getProjectInvitations = async (req, res) => {
 };
 
 // Cancel invitation
-exports.cancelInvitation = async (req, res) => {
+const cancelInvitation = async (req, res) => {
   try {
     const { invitationId } = req.params;
     
