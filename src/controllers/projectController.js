@@ -12,6 +12,12 @@ exports.loadProject = async (req, res, next) => {
     if (!project)
       return res.status(404).json({ success: false, message: 'Project not found' });
 
+    // Global admins can access any project
+    if (req.user.isGlobalAdmin) {
+      req.project = project;
+      return next();
+    }
+
     // Check membership
     const isMember = project.members.some(
       (m) => m.user._id.toString() === req.user._id.toString()
@@ -28,7 +34,14 @@ exports.loadProject = async (req, res, next) => {
 
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({ 'members.user': req.user._id })
+    let query = {};
+    
+    // Global admins can see all projects
+    if (!req.user.isGlobalAdmin) {
+      query = { 'members.user': req.user._id };
+    }
+    
+    const projects = await Project.find(query)
       .populate('owner', 'name email avatar')
       .populate('members.user', 'name email avatar')
       .sort('-createdAt');

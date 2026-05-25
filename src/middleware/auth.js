@@ -28,6 +28,11 @@ exports.protect = async (req, res, next) => {
 
 // Check if user is admin of a project (attach project to req first)
 exports.requireAdmin = (req, res, next) => {
+  // Check if user is global admin
+  if (req.user.isGlobalAdmin) {
+    return next();
+  }
+
   const project = req.project;
   if (!project) return res.status(500).json({ success: false, message: 'Project not loaded' });
 
