@@ -14,6 +14,7 @@ const sendToken = (user, statusCode, res) => {
       name: user.name,
       email: user.email,
       avatar: user.avatar,
+      isGlobalAdmin: user.isGlobalAdmin || false,
       createdAt: user.createdAt,
     },
   });

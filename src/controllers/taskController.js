@@ -76,12 +76,13 @@ exports.updateTask = async (req, res) => {
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
     // Members can only update status/assignedTo unless they're admin or creator
+    const isGlobalAdmin = req.user.isGlobalAdmin;
     const isAdmin = member?.role === 'admin';
     const isCreator = task.createdBy.toString() === req.user._id.toString();
 
     const { title, description, assignedTo, status, priority, dueDate, tags } = req.body;
 
-    if (isAdmin || isCreator) {
+    if (isGlobalAdmin || isAdmin || isCreator) {
       if (title !== undefined) task.title = title;
       if (description !== undefined) task.description = description;
       if (assignedTo !== undefined) task.assignedTo = assignedTo;
@@ -109,10 +110,11 @@ exports.deleteTask = async (req, res) => {
     const task = await Task.findById(req.params.taskId);
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
+    const isGlobalAdmin = req.user.isGlobalAdmin;
     const isAdmin = member?.role === 'admin';
     const isCreator = task.createdBy.toString() === req.user._id.toString();
 
-    if (!isAdmin && !isCreator)
+    if (!isGlobalAdmin && !isAdmin && !isCreator)
       return res.status(403).json({ success: false, message: 'Not authorized to delete this task' });
 
     await task.deleteOne();
@@ -126,9 +128,15 @@ exports.deleteTask = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
   try {
     const userId = req.user._id;
+    const isGlobalAdmin = req.user.isGlobalAdmin;
 
-    // Get all projects the user belongs to
-    const projects = await Project.find({ 'members.user': userId });
+    // Get all projects the user belongs to (or all projects if global admin)
+    let projects;
+    if (isGlobalAdmin) {
+      projects = await Project.find({});
+    } else {
+      projects = await Project.find({ 'members.user': userId });
+    }
     const projectIds = projects.map((p) => p._id);
 
     const allTasks = await Task.find({ project: { $in: projectIds } });
